@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#37474f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Registro termográfico de tableros — Cagnoli SA</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{
+    --bg:#f4f3ef; --panel:#ffffff; --ink:#20211d; --sub:#6b6c64; --line:#d9d7cd;
+    --steel:#37474f; --steel-dark:#20282c; --accent:#c8622a; --accent-bg:#faeee6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.5;padding-bottom:60px;}
+  header{background:var(--steel);color:#fff;padding:26px 24px 20px;}
+  header .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#b8c4c8;margin:0 0 6px;}
+  header h1{margin:0 0 4px;font-size:21px;font-weight:600;}
+  header p{margin:0;color:#c9d2d4;font-size:14px;max-width:640px;}
+  .wrap{max-width:780px;margin:0 auto;padding:0 20px;}
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:-16px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .card .num{font-size:22px;font-weight:600;}
+  .card .lbl{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:20px 0 14px;}
+  .toolbar input[type=text]{flex:1;min-width:160px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;}
+  .resetbtn{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--accent);white-space:nowrap;}
+  .progressbar{height:8px;background:#eae8de;border-radius:4px;overflow:hidden;margin:4px 0 22px;}
+  .progressbar > div{height:100%;background:var(--accent);transition:width .3s;}
+  .zone{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .zone-head{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;}
+  .zone-title{flex:1;}
+  .zone-title .name{font-weight:600;font-size:15px;}
+  .zone-title .meta{font-size:12px;color:var(--sub);margin-top:1px;}
+  .zone-progress{font-size:12px;color:var(--sub);white-space:nowrap;}
+  .chev{transition:transform .2s;color:var(--sub);}
+  .zone.collapsed .chev{transform:rotate(-90deg);}
+  .rows{border-top:1px solid var(--line);}
+  .zone.collapsed .rows{display:none;}
+  .row{padding:12px 16px;border-bottom:1px solid #eeece3;}
+  .row:last-child{border-bottom:none;}
+  .row.hidden{display:none;}
+  .row .tablero{font-size:14px;font-weight:500;margin-bottom:8px;}
+  .measures{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .field{display:flex;flex-direction:column;gap:3px;}
+  .field label{font-size:11px;color:var(--sub);}
+  .field .inputw{position:relative;}
+  .field input[type=number]{width:100px;padding:7px 24px 7px 9px;border:1px solid var(--line);border-radius:7px;font-size:14px;background:#fff;}
+  .field .unit{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--sub);pointer-events:none;}
+  .delta{font-size:12px;padding:5px 10px;border-radius:20px;background:var(--accent-bg);color:var(--accent);font-weight:500;white-space:nowrap;visibility:hidden;}
+  .delta.show{visibility:visible;}
+  .finalize-wrap{margin:24px 0 8px;text-align:center;}
+  .finalizebtn{background:var(--steel);color:#fff;border:none;padding:13px 26px;border-radius:9px;font-size:15px;font-weight:500;cursor:pointer;}
+  .finalizebtn:hover{background:var(--steel-dark);}
+  .finalize-hint{font-size:12px;color:var(--sub);margin-top:8px;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(32,33,29,.5);align-items:center;justify-content:center;z-index:1000;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:#fff;border-radius:12px;padding:22px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+  .modal-box h3{margin:0 0 6px;font-size:16px;}
+  .modal-box p{margin:0 0 14px;font-size:13px;color:var(--sub);}
+  .modal-box input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;box-sizing:border-box;}
+  .modal-error{font-size:12px;color:#c0392b;min-height:16px;margin:6px 0 4px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px;}
+  .modalbtn{padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid var(--line);background:#fff;}
+  .modalbtn.confirm{background:var(--steel);color:#fff;border:none;}
+  .modalbtn.confirm:hover{background:var(--steel-dark);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Ruta de inspección · organizada por ubicación</p>
+    <h1>Registro semanal de termografía de tableros</h1>
+    <p>77 tableros agrupados por ubicación física, tal como se recorren en planta. Cargá temperatura ambiente y temperatura de punto caliente de cada tablero durante la ronda.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="summary" id="summary"></div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Buscar tablero o ubicación...">
+    <button class="resetbtn" id="resetweek">Reiniciar semana</button>
+  </div>
+  <div class="progressbar"><div id="progfill" style="width:0%"></div></div>
+
+  <div id="zones"></div>
+
+  <div class="finalize-wrap">
+    <button class="finalizebtn" id="finalizebtn">Finalizar mediciones</button>
+    <p class="finalize-hint">Pide el nombre del técnico, genera el Excel con todas las mediciones y la fecha, y abre el menú para compartir por WhatsApp.</p>
+  </div>
+
+  <p class="footnote" id="lastreset"></p>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h3>Datos del técnico</h3>
+    <p>Ingresá tu nombre y apellido para completar el registro de esta ronda.</p>
+    <input type="text" id="technicianName" placeholder="Nombre y apellido">
+    <p class="modal-error" id="modalError"></p>
+    <div class="modal-actions">
+      <button id="modalCancel" class="modalbtn">Cancelar</button>
+      <button id="modalConfirm" class="modalbtn confirm">Confirmar y exportar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const DATA = [
+{zona:"Debajo de nueva torre de enfriado", items:["Tablero NH3 Chiller 2","Tableros Pozos"]},
+{zona:"Dentro de casillas de ablandadores", items:["Tablero Ablandadores de Agua"]},
+{zona:"Entre techo Cámara 2", items:["Tablero ventilador 1","Tablero ventilador 2","Tablero ventilador 3","Tablero ventilador 4"]},
+{zona:"Entre techo Cámara 7", items:["Tablero Entretecho Cámara 7","Tablero Entretecho Cámara 7 Chico","Tablero Comando Condensador","Tablero Aires Sala de Servidores","Tablero Escondido Administración"]},
+{zona:"Entre techo Cámara 8", items:["Seccional camara 8","Comando y potencia camara 8","Tableros sin ideSeccional camara 2ntificar"]},
+{zona:"Entre techo Cantina 24", items:["Tablero Entretecho Cantina 24","TS2 (Tablero NH3)","Tablero Cantina 24 Frigomeccanica"]},
+{zona:"Entre techo Cantina 25", items:["Tablero Cantina 25 Frigomeccanica"]},
+{zona:"Entre techo descongelado", items:["Tablero Cámara Descongelado Materias Primas","Tablero Iluminación y Tomas","Tablero Esterilizador","Tablero MadeFrigor Descongelado 2","Tablero Frigomeccanica Descongelado 1"]},
+{zona:"Entre techo Inyección", items:["Tablero de fases","Tablero de equipo de frio jamoneria y válvula frio lo bombos","Tablero con borneras de paso 1","Tablero con borneras de paso 2","Tablero de sala de atado e inyección"]},
+{zona:"Entre techo Sala Producción", items:["Tablero Entretecho Sala Producción 1","Tablero Entretecho Sala Producción 2","Tablero Entretecho Sala Producción 3"]},
+{zona:"Fosa de Feteados", items:["Tablero de Feteados","Tablero Distribución Sala de Feteo","Tablero Refrigeración Darfresh","Tablero Refrigerantes Termoformadoras","Tablero Cortinas de Aire","Tablero Frigoscandia"]},
+{zona:"Loza Secadero 6", items:["Tablero Secadero 6 Loza"]},
+{zona:"Sala de Tableros 10", items:["TG006","TG003"]},
+{zona:"Sala de Tableros 11", items:["Tablero NH3 1","Tablero NH3 2","Tablero NH3 3","Tablero NH3 4","Tablero NH3 5 Factor de Potencia","Tablero NH3 Compresor 2"]},
+{zona:"Sala de Tableros 5", items:["Tablero Interior Trafo 1","Tablero Interior Trafo 2","Tablero 1","Tablero 2","Tablero 3","Tablero 4","Tablero 5","Tablero Generador/Transformador","TG007","TS3"]},
+{zona:"Sala de Tableros 6", items:["TG004","TG011","TG010","TG009"]},
+{zona:"Sala de Tableros 8", items:["TR001","TG001","TS14","TS89 Tablero central de media","TG002","TG005","Gabinete Emulsor Cozzini","Tablero Inyección","Tablero Moldeo","Tablero DP10","Tablero Maja","Tablero Variomix"]},
+{zona:"Sala de Tableros 9", items:["TG008","Tablero Condensadores y Evaporadores","Tablero Cortinas de Aire"]},
+{zona:"Tablero exterior (Mantto)", items:["TGS 315"]}
+];
+
+let readings = {};
+const zonesEl = document.getElementById('zones');
+const searchEl = document.getElementById('search');
+
+function idFor(zi,ii){ return 'z'+zi+'_i'+ii; }
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem('thermo-readings');
+    if(raw){ readings = JSON.parse(raw); }
+  }catch(e){ readings = {}; }
+  try{
+    const lr = localStorage.getItem('thermo-lastreset');
+    document.getElementById('lastreset').textContent = lr ? 'Último reinicio de semana: '+lr : 'Aún no se reinició ninguna semana.';
+  }catch(e){}
+}
+
+function saveState(){
+  try{ localStorage.setItem('thermo-readings', JSON.stringify(readings)); }catch(e){}
+}
+
+function onInput(id, field, val){
+  if(!readings[id]) readings[id] = {};
+  if(val === ''){ delete readings[id][field]; if(Object.keys(readings[id]).length===0) delete readings[id]; }
+  else readings[id][field] = parseFloat(val);
+  saveState();
+  renderDelta(id);
+  renderSummary();
+}
+
+function renderDelta(id){
+  const el = document.querySelector('.delta[data-for="'+id+'"]');
+  if(!el) return;
+  const r = readings[id];
+  if(r && r.tamb!==undefined && r.tpc!==undefined && !isNaN(r.tamb) && !isNaN(r.tpc)){
+    const d = (r.tpc - r.tamb).toFixed(1);
+    el.textContent = 'ΔT '+d+' °C';
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+function render(){
+  zonesEl.innerHTML = '';
+  const q = searchEl.value.trim().toLowerCase();
+
+  DATA.forEach((zone,zi)=>{
+    let visibleCount = 0;
+    const rowsHtml = zone.items.map((tablero,ii)=>{
+      const id = idFor(zi,ii);
+      const r = readings[id] || {};
+      const matches = !q || tablero.toLowerCase().includes(q) || zone.zona.toLowerCase().includes(q);
+      if(matches) visibleCount++;
+      return `<div class="row ${matches?'':'hidden'}">
+        <div class="tablero">${tablero}</div>
+        <div class="measures">
+          <div class="field">
+            <label>T° ambiente</label>
+            <div class="inputw"><input type="number" step="0.1" value="${r.tamb!==undefined?r.tamb:''}" oninput="onInput('${id}','tamb',this.value)"><span class="unit">°C</span></div>
+          </div>
+          <div class="field">
+            <label>T° punto caliente</label>
+            <div class="inputw"><input type="number" step="0.1" value="${r.tpc!==undefined?r.tpc:''}" oninput="onInput('${id}','tpc',this.value)"><span class="unit">°C</span></div>
+          </div>
+          <span class="delta" data-for="${id}"></span>
+        </div>
+      </div>`;
+    }).join('');
+
+    const doneInZone = zone.items.filter((it,ii)=>{
+      const r = readings[idFor(zi,ii)];
+      return r && r.tamb!==undefined && r.tpc!==undefined;
+    }).length;
+
+    const div = document.createElement('div');
+    div.className = 'zone';
+    div.innerHTML = `
+      <div class="zone-head" onclick="this.parentElement.classList.toggle('collapsed')">
+        <div class="zone-title">
+          <div class="name">${zone.zona}</div>
+          <div class="meta">${zone.items.length} tableros</div>
+        </div>
+        <div class="zone-progress">${doneInZone}/${zone.items.length}</div>
+        <i class="chev">▾</i>
+      </div>
+      <div class="rows">${rowsHtml}</div>`;
+    if(visibleCount===0 && q) div.classList.add('hidden');
+    zonesEl.appendChild(div);
+  });
+
+  document.querySelectorAll('.delta').forEach(el=>{
+    const id = el.dataset.for;
+    renderDelta(id);
+  });
+
+  renderSummary();
+}
+
+function renderSummary(){
+  let total=0, done=0;
+  DATA.forEach((zone,zi)=>{
+    zone.items.forEach((it,ii)=>{
+      total++;
+      const r = readings[idFor(zi,ii)];
+      if(r && r.tamb!==undefined && r.tpc!==undefined) done++;
+    });
+  });
+  document.getElementById('summary').innerHTML = `
+    <div class="card"><div class="num">${total}</div><div class="lbl">Tableros</div></div>
+    <div class="card"><div class="num">${done}</div><div class="lbl">Con ambas mediciones</div></div>
+    <div class="card"><div class="num">${total-done}</div><div class="lbl">Pendientes</div></div>`;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  document.getElementById('progfill').style.width = pct+'%';
+}
+
+window.onInput = onInput;
+
+searchEl.addEventListener('input', render);
+
+document.getElementById('resetweek').addEventListener('click', ()=>{
+  if(!confirm('Esto borra todas las temperaturas cargadas para arrancar una nueva semana de medición. ¿Continuar?')) return;
+  readings = {};
+  saveState();
+  const today = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  try{ localStorage.setItem('thermo-lastreset', today); }catch(e){}
+  document.getElementById('lastreset').textContent = 'Último reinicio de semana: '+today;
+  render();
+});
+
+function buildExportRows(){
+  const rows = [];
+  DATA.forEach((zone, zi)=>{
+    zone.items.forEach((tablero, ii)=>{
+      const r = readings[idFor(zi,ii)] || {};
+      const tamb = r.tamb!==undefined ? r.tamb : '';
+      const tpc = r.tpc!==undefined ? r.tpc : '';
+      const delta = (r.tamb!==undefined && r.tpc!==undefined) ? (r.tpc-r.tamb).toFixed(1) : '';
+      rows.push([zone.zona, tablero, tamb, tpc, delta]);
+    });
+  });
+  return rows;
+}
+
+function askTechnicianName(){
+  return new Promise((resolve)=>{
+    const overlay = document.getElementById('modalOverlay');
+    const input = document.getElementById('technicianName');
+    const errorEl = document.getElementById('modalError');
+    const confirmBtn = document.getElementById('modalConfirm');
+    const cancelBtn = document.getElementById('modalCancel');
+
+    input.value = '';
+    errorEl.textContent = '';
+    overlay.classList.add('show');
+    setTimeout(()=>input.focus(), 50);
+
+    function cleanup(){
+      overlay.classList.remove('show');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      input.removeEventListener('keydown', onKeydown);
+    }
+    function onConfirm(){
+      const val = input.value.trim();
+      if(!val){ errorEl.textContent = 'Ingresá el nombre y apellido para continuar.'; return; }
+      cleanup();
+      resolve(val);
+    }
+    function onCancel(){
+      cleanup();
+      resolve(null);
+    }
+    function onKeydown(e){
+      if(e.key==='Enter') onConfirm();
+    }
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKeydown);
+  });
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+document.getElementById('finalizebtn').addEventListener('click', async ()=>{
+  const rows = buildExportRows();
+  const pendientes = rows.filter(r=>r[2]==='' || r[3]==='').length;
+  if(pendientes>0){
+    if(!confirm('Todavía quedan '+pendientes+' tableros sin las dos mediciones cargadas. ¿Exportar igual con esos campos en blanco?')) return;
+  }
+
+  const technician = await askTechnicianName();
+  if(!technician) return; // el usuario canceló el modal
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const timeStr = now.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  const dateStrFile = dateStr.replace(/\//g,'-');
+
+  const wsData = [
+    ['Registro de termografía de tableros - Cagnoli SA'],
+    ['Fecha', dateStr, 'Hora', timeStr],
+    ['Técnico', technician],
+    [],
+    ['Ubicación','Tablero','T ambiente (°C)','T punto caliente (°C)','ΔT (°C)'],
+    ...rows
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Termografía');
+  const xlsxArray = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const xlsxBlob = new Blob([xlsxArray], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const xlsxFilename = 'termografia_'+dateStrFile+'.xlsx';
+
+  downloadBlob(xlsxBlob, xlsxFilename);
+
+  const xlsxFile = new File([xlsxBlob], xlsxFilename, {type: xlsxBlob.type});
+  if(navigator.canShare && navigator.canShare({files:[xlsxFile]})){
+    try{
+      await navigator.share({files:[xlsxFile], title:'Termografía de tableros', text:'Registro de termografía '+dateStr+' - '+technician});
+    }catch(e){ /* el usuario cerró el menú de compartir o no hay app disponible; el archivo ya se descargó */ }
+  } else {
+    alert('Se descargó el Excel. Para compartirlo por WhatsApp: abrí WhatsApp Web o la app de escritorio y adjuntá el archivo desde la carpeta de descargas.');
+  }
+});
+
+loadState();
+render();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
